@@ -1,0 +1,204 @@
+<!doctype html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="index.css">
+		<title>Circular String Search</title>
+		
+	</head>
+
+	<body>
+		<!--TITLE -->
+		<h1 id="title">Circular String Search</h1>
+
+		<!-- IMAGE -->
+		<table id="intro">
+		<tr>
+		<td>
+		<img id="titleimage" src="circular_string.png"/>
+		</td>
+		<td id="blurb">
+		<p>
+		Provided a pattern and a text, this algorithm will locate all occurences
+		of the pattern in the text and additionally all rotations of the
+		pattern in the text. By reporting rotations, the pattern is treated
+		as a circular string.
+		</p>
+		</td>
+		</tr>
+		</table>
+
+		<table class="organisation">
+		<tr>
+
+		<td class="panel">
+		<!-- LEFT PANEL -->
+		<table class="display">
+			<tr><td colspan="2"><h4>Pattern:</h4><td></tr>
+
+			<tr>
+				<td colspan="2"><input type="file" id="patternFilePicker" displayfilename = "oh" displaytext="patternFileData"></td>
+			<tr>
+
+			<td><textarea class="input" id="patternFileData" cols="50" rows="10" placeholder="Pattern to find" charCounter="patternCharCount" filePicker="patternFilePicker"></textarea></td>
+
+			<tr><td><label id="patternCharCount">0 Chars</label></td></tr>
+
+			<tr><td colspan="2"><h4>Text:</h4><td></tr>
+
+			<tr>
+				<td colspan="2"><input type="file" id="textFilePicker" displayfilename = "oh" displaytext="textFileData"></td>
+			<tr>
+
+			<td><textarea class="input" id="textFileData" cols="50" rows="10" placeholder="Text to search" charCounter="textCharCount" filePicker="textFilePicker"></textarea></td>
+
+			<tr><td><label id="textCharCount">0 Chars</label></td></tr>
+
+			<tr><td>&nbsp;</td></tr>
+
+			<tr>
+				<td colspan="2"><button id="searchButton" type="button" onclick="initiateSearch()">Search</button></td>
+			</tr>
+		</table>
+		</td>
+
+		<td class="panel">
+		<!-- RIGHT PANEL -->
+		<table class="display">					
+			<tr>
+				<tr><td colspan="2"><h4>Search Results:</h4><td></tr>
+			</tr>
+			<tr>
+				<td colspan="2">
+					<select id="searchResults" size="20"></select>
+				</td>
+			</tr>
+		</table>
+
+		</td>
+
+		</tr>
+		</table>
+	</body>
+
+	<script src="ecsmf.js"></script>
+
+	<script type="text/javascript">
+		var logInput = false;
+
+		var handleFileSelect = function(evt) {
+
+			// Convert file to base64 text
+			var files = evt.target.files;
+			var file = files[0];
+
+			if (files && file) {
+				var reader = new FileReader();
+
+				reader.onload = function(readerEvt) {
+					var data = cleanText(readerEvt.target.result);
+					document.getElementById(evt.target.getAttribute("displaytext")).value = data;
+
+					// Update character counts
+					myEvt = {target: {charCounter: "", value: ""}, fromFileSelect: true};
+					myEvt.target.charCounter = document.getElementById(evt.target.getAttribute("displaytext")).getAttribute("charCounter");
+					myEvt.target.value = data;
+					handleDataChange(myEvt);			
+				};
+				reader.readAsBinaryString(file);
+			}
+		};
+
+		var handleDataChange = function(evt) {	
+			evt.target.value = cleanText(evt.target.value);
+
+			var charCountLabel = {};
+
+			if (evt.fromFileSelect) {
+				charCountLabel = document.getElementById(evt.target.charCounter);
+			}
+			else {
+				charCountLabel = document.getElementById(evt.target.getAttribute("charCounter"));
+
+				clearInputFile(document.getElementById(evt.target.getAttribute("filePicker")));
+			}
+			
+			charCountLabel.innerHTML = evt.target.value.length + " Chars";
+		}
+		
+		function initiateSearch() {
+			searchButton.value = "";
+			var pattern = document.getElementById('patternFileData').value;
+			var text = document.getElementById('textFileData').value;
+
+			var searchResults = document.getElementById('searchResults');			
+			searchResults.innerHTML="";
+
+			if (pattern === "" || text === "") {
+				var result = document.createElement("option");
+					result.text = "Error: The pattern or text is empty";
+					searchResults.options.add(result);
+				return;
+			}
+
+			if (pattern.length < 3) {
+				var result = document.createElement("option");
+					result.text = "Error: The pattern must contain at least 3 characters";
+					searchResults.options.add(result);
+				return;
+			}
+			
+			if (logInput) {console.log(text, pattern)};
+
+			var lib = new ecsmfModule();
+
+			var matches = lib.ecsmf(text, pattern);
+
+			if (!matches.isEmpty()) {
+				while (!matches.isEmpty()) {
+					var match = matches.dequeue();
+					var result = document.createElement("option");
+					result.text = JSON.stringify(match)
+					searchResults.options.add(result);		
+				}
+			}
+			else {
+				var result = document.createElement("option");
+					result.text = "No occurences found";
+					searchResults.options.add(result);	
+			}
+		}
+
+		var cleanText = function(text) {
+			return text.replace(/(\r\n|\n|\r)/gm,"").replace(/ +?/g, '').replace(/\t/g, '');
+		}
+
+		function clearInputFile(f){
+		    if(f.value) {
+		        try {
+		            f.value = ''; //for IE11, latest Chrome/Firefox/Opera...
+		        } catch(err){ }
+		        if (f.value) { //for IE5 ~ IE10
+		            var form = document.createElement('form'),
+		                parentNode = f.parentNode, ref = f.nextSibling;
+		            form.appendChild(f);
+		            form.reset();
+		            parentNode.insertBefore(f,ref);
+		        }
+		    }
+		}
+
+		document.getElementById('patternFileData').addEventListener('change', handleDataChange, false);
+		document.getElementById('textFileData').addEventListener('change', handleDataChange, false);
+		document.getElementById('patternFileData').addEventListener('keyup', handleDataChange, false);
+		document.getElementById('textFileData').addEventListener('keyup', handleDataChange, false);
+		
+		if (window.File && window.FileReader && window.FileList && window.Blob) {
+			document.getElementById('patternFilePicker').addEventListener('change', handleFileSelect, false);
+			document.getElementById('textFilePicker').addEventListener('change', handleFileSelect, false);
+		} else {
+			alert('The File APIs are not fully supported in this browser.');
+			document.getElementById('patternFilePicker').disabled = true;
+			document.getElementById('textFilePicker').disabled = true;
+		}
+	</script>
+</html>
